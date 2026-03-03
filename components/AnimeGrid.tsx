@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { AnimeSlot } from '@/types/anime';
 import { getAnimeDisplayTitle } from '@/lib/animeApi';
 
@@ -8,6 +11,19 @@ type AnimeGridProps = {
 };
 
 export function AnimeGrid({ title, slots, exportRef }: AnimeGridProps) {
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setFailedImages((current) => {
+      const next: Record<string, boolean> = {};
+      for (const slot of slots) {
+        const key = `${slot.id}:${slot.selectedAnime?.imageUrl || ''}`;
+        if (current[key]) next[key] = true;
+      }
+      return next;
+    });
+  }, [slots]);
+
   return (
     <section className="rounded-xl border border-slate-700 bg-slate-900/70 p-4 shadow-xl shadow-cyan-900/20">
       <div
@@ -22,6 +38,8 @@ export function AnimeGrid({ title, slots, exportRef }: AnimeGridProps) {
           {slots.map((slot, index) => {
             const anime = slot.selectedAnime;
             const displayTitle = anime ? getAnimeDisplayTitle(anime) : '未選択';
+            const imageKey = `${slot.id}:${anime?.imageUrl || ''}`;
+            const shouldShowImage = Boolean(anime?.imageUrl) && !failedImages[imageKey];
 
             return (
               <article
@@ -29,18 +47,19 @@ export function AnimeGrid({ title, slots, exportRef }: AnimeGridProps) {
                 className="relative overflow-hidden rounded-lg border border-slate-700 bg-slate-800"
               >
                 <div className="aspect-square">
-                  {anime?.imageUrl ? (
+                  {shouldShowImage ? (
                     // next/image is intentionally avoided here to keep static export and remote image handling simple.
                     <img
-                      src={anime.imageUrl}
+                      src={anime?.imageUrl || ''}
                       alt={displayTitle}
                       className="h-full w-full object-cover"
-                      crossOrigin="anonymous"
-                      referrerPolicy="no-referrer"
+                      onError={() => {
+                        setFailedImages((current) => ({ ...current, [imageKey]: true }));
+                      }}
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-slate-700 text-center text-xs text-slate-300 sm:text-sm">
-                      No Image
+                      No images
                     </div>
                   )}
                 </div>
