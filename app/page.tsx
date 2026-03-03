@@ -1,17 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimeCellEditor } from '@/components/AnimeCellEditor';
 import { AnimeGrid } from '@/components/AnimeGrid';
 import { ExportPanel } from '@/components/ExportPanel';
 import { searchAnime, getAnimeDisplayTitle } from '@/lib/animeApi';
-import { exportElementToPng } from '@/lib/exportImage';
 import { AnimeSlot, AnimeSummary } from '@/types/anime';
 
 const SLOT_COUNT = 9;
 const DEBOUNCE_MS = 400;
 const STORAGE_KEY = 'nine-animes-state-v1';
-const IMAGE_PROXY = process.env.NEXT_PUBLIC_IMAGE_PROXY || '';
 
 type PersistedSlot = {
   id: number;
@@ -50,9 +48,7 @@ function toPersistedState(title: string, slots: AnimeSlot[]): PersistedState {
 export default function HomePage() {
   const [title, setTitle] = useState('私を構成する9つのアニメ');
   const [slots, setSlots] = useState<AnimeSlot[]>(createInitialSlots());
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
-  const exportRef = useRef<HTMLDivElement>(null);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -179,27 +175,12 @@ export default function HomePage() {
     updateSlot(slotId, (slot) => ({ ...slot, comment: value }));
   };
 
-  const handleExport = async (): Promise<void> => {
-    if (!exportRef.current) return;
-    setIsExporting(true);
-    setExportError(null);
-    try {
-      const result = await exportElementToPng(exportRef.current, 'my-9-anime.png');
-      if (result.usedFallback) {
-        setExportError('外部画像の制約により、一部画像を No images に置き換えて出力しました。');
-      }
-    } catch {
-      setExportError('画像エクスポートに失敗しました。画像の読み込み完了後に再試行してください。');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   const handleCopyShareText = async (): Promise<void> => {
+    setCopyError(null);
     try {
       await navigator.clipboard.writeText(shareText);
     } catch {
-      setExportError('クリップボードへのコピーに失敗しました。ブラウザ設定をご確認ください。');
+      setCopyError('クリップボードへのコピーに失敗しました。ブラウザ設定をご確認ください。');
     }
   };
 
@@ -209,7 +190,7 @@ export default function HomePage() {
         <p className="text-xs uppercase tracking-[0.2em] text-cyan-300">9 Anime Builder</p>
         <h1 className="text-2xl font-bold text-slate-100 sm:text-3xl">私を構成する9つのアニメ</h1>
         <p className="text-sm text-slate-300">
-          9作品を選んで1枚にまとめ、PNG保存できます。空欄セルがあってもエクスポート可能です。
+          9作品を選んで一覧化し、シェア文を作成できます。
         </p>
       </header>
 
@@ -239,16 +220,13 @@ export default function HomePage() {
           </div>
 
           <ExportPanel
-            onExport={handleExport}
-            isExporting={isExporting}
-            exportError={exportError}
             onCopyShareText={handleCopyShareText}
             shareText={shareText}
-            proxyEnabled={Boolean(IMAGE_PROXY)}
+            copyError={copyError}
           />
         </section>
 
-        <AnimeGrid title={title} slots={slots} exportRef={exportRef} />
+        <AnimeGrid title={title} slots={slots} />
       </div>
     </main>
   );

@@ -8,10 +8,9 @@ import { toSafeImageSrc } from '@/lib/imageProxy';
 type AnimeGridProps = {
   title: string;
   slots: AnimeSlot[];
-  exportRef: React.RefObject<HTMLDivElement | null>;
 };
 
-export function AnimeGrid({ title, slots, exportRef }: AnimeGridProps) {
+export function AnimeGrid({ title, slots }: AnimeGridProps) {
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -27,10 +26,7 @@ export function AnimeGrid({ title, slots, exportRef }: AnimeGridProps) {
 
   return (
     <section className="rounded-xl border border-slate-700 bg-slate-900/70 p-4 shadow-xl shadow-cyan-900/20">
-      <div
-        ref={exportRef}
-        className="mx-auto w-full max-w-[760px] rounded-xl border border-slate-600 bg-slate-950 p-4"
-      >
+      <div className="mx-auto w-full max-w-[760px] rounded-xl border border-slate-600 bg-slate-950 p-4">
         <h1 className="mb-4 text-center text-xl font-bold tracking-wide text-slate-100 sm:text-2xl">
           {title || '私を構成する9つのアニメ'}
         </h1>
