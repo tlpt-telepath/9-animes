@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-slate-950 text-slate-100;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(34, 211, 238, 0.14), transparent 30%),
+    radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.12), transparent 35%);
+}
+
+input,
+textarea,
+button {
+  @apply outline-none;
+}
