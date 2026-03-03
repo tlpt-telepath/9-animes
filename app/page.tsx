@@ -10,6 +10,10 @@ import { AnimeSlot, AnimeSummary } from '@/types/anime';
 const SLOT_COUNT = 9;
 const DEBOUNCE_MS = 400;
 const STORAGE_KEY = 'nine-animes-state-v1';
+const X_MAX_LENGTH = 280;
+const SHARE_HASHTAG = '#私を構成する9つのアニメ';
+
+type ShareMode = 'full' | 'short';
 
 type PersistedSlot = {
   id: number;
@@ -49,10 +53,46 @@ function normalizeQuery(text: string): string {
   return text.trim().toLowerCase();
 }
 
+function composeShareText(title: string, lines: string[]): string {
+  const body = lines.length ? lines.join('\n') : '（まだ選択中）';
+  return `${title}\n\n${body}\n\n${SHARE_HASHTAG}`;
+}
+
+function shortenListLine(line: string, maxTitleChars: number): string {
+  const match = line.match(/^(\d+\.\s*)(.*)$/);
+  if (!match) return line;
+  const [, prefix, rawTitle] = match;
+  const title = rawTitle.trim();
+  if (title.length <= maxTitleChars) return `${prefix}${title}`;
+  return `${prefix}${title.slice(0, maxTitleChars)}…`;
+}
+
+function buildShortShareText(title: string, lines: string[]): string {
+  if (!lines.length) return composeShareText(title, []);
+
+  const titleLimits = [28, 22, 16, 12, 8];
+  for (const maxTitleChars of titleLimits) {
+    for (let keepCount = lines.length; keepCount >= 1; keepCount -= 1) {
+      const candidateLines = lines.slice(0, keepCount).map((line) => shortenListLine(line, maxTitleChars));
+      if (keepCount < lines.length) {
+        const lastIndex = candidateLines.length - 1;
+        const numMatch = candidateLines[lastIndex].match(/^(\d+)\./);
+        const numberLabel = numMatch ? `${numMatch[1]}.` : `${keepCount}.`;
+        candidateLines[lastIndex] = `${numberLabel} なんたら……`;
+      }
+      const candidate = composeShareText(title, candidateLines);
+      if (candidate.length <= X_MAX_LENGTH) return candidate;
+    }
+  }
+
+  return `${title.slice(0, 30)}…\n\n1. なんたら……\n\n${SHARE_HASHTAG}`;
+}
+
 export default function HomePage() {
   const [title, setTitle] = useState('私を構成する9つのアニメ');
   const [slots, setSlots] = useState<AnimeSlot[]>(createInitialSlots());
   const [copyError, setCopyError] = useState<string | null>(null);
+  const [shareMode, setShareMode] = useState<ShareMode>('full');
 
   useEffect(() => {
     try {
@@ -152,14 +192,17 @@ export default function HomePage() {
     };
   }, [slots]);
 
-  const shareText = useMemo(() => {
-    const selected = slots
-      .filter((slot) => slot.selectedAnime)
-      .map((slot) => `${slot.id}. ${getAnimeDisplayTitle(slot.selectedAnime as AnimeSummary)}`)
-      .join('\n');
+  const shareLines = useMemo(
+    () =>
+      slots
+        .filter((slot) => slot.selectedAnime)
+        .map((slot) => `${slot.id}. ${getAnimeDisplayTitle(slot.selectedAnime as AnimeSummary)}`),
+    [slots]
+  );
 
-    return `${title}\n\n${selected || '（まだ選択中）'}\n\n#私を構成する9つのアニメ`;
-  }, [slots, title]);
+  const fullShareText = useMemo(() => composeShareText(title, shareLines), [title, shareLines]);
+  const shortShareText = useMemo(() => buildShortShareText(title, shareLines), [title, shareLines]);
+  const activeShareText = shareMode === 'short' ? shortShareText : fullShareText;
 
   const updateSlot = (slotId: number, updater: (prev: AnimeSlot) => AnimeSlot): void => {
     setSlots((current) => current.map((slot) => (slot.id === slotId ? updater(slot) : slot)));
@@ -198,7 +241,7 @@ export default function HomePage() {
   const handleCopyShareText = async (): Promise<void> => {
     setCopyError(null);
     try {
-      await navigator.clipboard.writeText(shareText);
+      await navigator.clipboard.writeText(activeShareText);
     } catch {
       setCopyError('クリップボードへのコピーに失敗しました。ブラウザ設定をご確認ください。');
     }
@@ -241,7 +284,10 @@ export default function HomePage() {
 
           <ExportPanel
             onCopyShareText={handleCopyShareText}
-            shareText={shareText}
+            fullShareText={fullShareText}
+            shortShareText={shortShareText}
+            shareMode={shareMode}
+            onChangeShareMode={setShareMode}
             copyError={copyError}
           />
         </section>
