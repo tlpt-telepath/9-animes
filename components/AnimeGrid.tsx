@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AnimeSlot } from '@/types/anime';
 import { getAnimeDisplayTitle } from '@/lib/animeApi';
+import { toSafeImageSrc } from '@/lib/imageProxy';
 
 type AnimeGridProps = {
   title: string;
@@ -38,8 +39,9 @@ export function AnimeGrid({ title, slots, exportRef }: AnimeGridProps) {
           {slots.map((slot, index) => {
             const anime = slot.selectedAnime;
             const displayTitle = anime ? getAnimeDisplayTitle(anime) : '未選択';
-            const imageKey = `${slot.id}:${anime?.imageUrl || ''}`;
-            const shouldShowImage = Boolean(anime?.imageUrl) && !failedImages[imageKey];
+            const imageSrc = toSafeImageSrc(anime?.imageUrl || null);
+            const imageKey = `${slot.id}:${imageSrc || ''}`;
+            const shouldShowImage = Boolean(imageSrc) && !failedImages[imageKey];
 
             return (
               <article
@@ -50,7 +52,7 @@ export function AnimeGrid({ title, slots, exportRef }: AnimeGridProps) {
                   {shouldShowImage ? (
                     // next/image is intentionally avoided here to keep static export and remote image handling simple.
                     <img
-                      src={anime?.imageUrl || ''}
+                      src={imageSrc || ''}
                       alt={displayTitle}
                       className="h-full w-full object-cover"
                       onError={() => {
