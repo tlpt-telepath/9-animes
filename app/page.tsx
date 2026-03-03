@@ -45,6 +45,10 @@ function toPersistedState(title: string, slots: AnimeSlot[]): PersistedState {
   };
 }
 
+function normalizeQuery(text: string): string {
+  return text.trim().toLowerCase();
+}
+
 export default function HomePage() {
   const [title, setTitle] = useState('私を構成する9つのアニメ');
   const [slots, setSlots] = useState<AnimeSlot[]>(createInitialSlots());
@@ -81,6 +85,22 @@ export default function HomePage() {
 
   useEffect(() => {
     const timers = slots.map((slot) => {
+      const selectedTitle = slot.selectedAnime ? getAnimeDisplayTitle(slot.selectedAnime) : '';
+      const isSelectedTitleQuery =
+        Boolean(slot.selectedAnime) &&
+        normalizeQuery(slot.searchQuery) === normalizeQuery(selectedTitle);
+
+      if (isSelectedTitleQuery) {
+        if (slot.searchResults.length || slot.error || slot.isSearching) {
+          setSlots((current) =>
+            current.map((s) =>
+              s.id === slot.id ? { ...s, searchResults: [], error: null, isSearching: false } : s
+            )
+          );
+        }
+        return null;
+      }
+
       if (!slot.searchQuery.trim()) {
         if (slot.searchResults.length || slot.error || slot.isSearching) {
           setSlots((current) =>
