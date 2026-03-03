@@ -22,17 +22,72 @@ async function waitForImages(container: HTMLElement): Promise<void> {
   );
 }
 
-export async function exportElementToPng(element: HTMLElement, fileName: string): Promise<void> {
-  await waitForImages(element);
-
-  const dataUrl = await toPng(element, {
-    cacheBust: true,
-    pixelRatio: 2,
-    backgroundColor: '#0b1120'
-  });
-
+function makeDownload(dataUrl: string, fileName: string): void {
   const link = document.createElement('a');
   link.download = fileName;
   link.href = dataUrl;
   link.click();
+}
+
+function buildFallbackClone(element: HTMLElement): HTMLElement {
+  const clone = element.cloneNode(true) as HTMLElement;
+  clone.style.width = `${element.clientWidth}px`;
+  clone.style.maxWidth = 'none';
+
+  const images = Array.from(clone.querySelectorAll('img'));
+  images.forEach((img) => {
+    const fallback = document.createElement('div');
+    fallback.style.width = '100%';
+    fallback.style.height = '100%';
+    fallback.style.display = 'flex';
+    fallback.style.alignItems = 'center';
+    fallback.style.justifyContent = 'center';
+    fallback.style.background = '#334155';
+    fallback.style.color = '#e2e8f0';
+    fallback.style.fontSize = '12px';
+    fallback.style.fontWeight = '600';
+    fallback.textContent = 'No images';
+    img.replaceWith(fallback);
+  });
+
+  const mount = document.createElement('div');
+  mount.style.position = 'fixed';
+  mount.style.left = '-10000px';
+  mount.style.top = '0';
+  mount.style.pointerEvents = 'none';
+  mount.appendChild(clone);
+  document.body.appendChild(mount);
+
+  return mount;
+}
+
+export async function exportElementToPng(
+  element: HTMLElement,
+  fileName: string
+): Promise<{ usedFallback: boolean }> {
+  await waitForImages(element);
+
+  try {
+    const dataUrl = await toPng(element, {
+      cacheBust: true,
+      pixelRatio: 2,
+      backgroundColor: '#0b1120'
+    });
+    makeDownload(dataUrl, fileName);
+    return { usedFallback: false };
+  } catch {
+    const mount = buildFallbackClone(element);
+    const fallbackRoot = mount.firstElementChild as HTMLElement;
+    try {
+      const dataUrl = await toPng(fallbackRoot, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: '#0b1120'
+      });
+      makeDownload(dataUrl, fileName);
+      return { usedFallback: true };
+    } finally {
+      mount.remove();
+    }
+  }
 }

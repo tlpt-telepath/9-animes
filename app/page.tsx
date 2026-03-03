@@ -183,7 +183,10 @@ export default function HomePage() {
     setIsExporting(true);
     setExportError(null);
     try {
-      await exportElementToPng(exportRef.current, 'my-9-anime.png');
+      const result = await exportElementToPng(exportRef.current, 'my-9-anime.png');
+      if (result.usedFallback) {
+        setExportError('外部画像の制約により、一部画像を No images に置き換えて出力しました。');
+      }
     } catch {
       setExportError('画像エクスポートに失敗しました。画像の読み込み完了後に再試行してください。');
     } finally {
