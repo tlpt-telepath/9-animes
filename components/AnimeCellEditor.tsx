@@ -7,15 +7,13 @@ type AnimeCellEditorProps = {
   onQueryChange: (slotId: number, value: string) => void;
   onSelectAnime: (slotId: number, anime: AnimeSummary) => void;
   onClearAnime: (slotId: number) => void;
-  onCommentChange: (slotId: number, value: string) => void;
 };
 
 export function AnimeCellEditor({
   slot,
   onQueryChange,
   onSelectAnime,
-  onClearAnime,
-  onCommentChange
+  onClearAnime
 }: AnimeCellEditorProps) {
   return (
     <article className="rounded-lg border border-slate-700 bg-slate-900/60 p-3">
@@ -45,14 +43,6 @@ export function AnimeCellEditor({
         <p className="text-xs text-slate-300">
           選択中: {slot.selectedAnime ? getAnimeDisplayTitle(slot.selectedAnime) : 'なし'}
         </p>
-        <textarea
-          value={slot.comment}
-          onChange={(e) => onCommentChange(slot.id, e.target.value)}
-          placeholder="コメント（任意・短文）"
-          maxLength={50}
-          rows={2}
-          className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:border-cyan-400"
-        />
       </div>
     </article>
   );

@@ -9,7 +9,6 @@ export type AnimeSummary = {
 export type AnimeSlot = {
   id: number;
   selectedAnime: AnimeSummary | null;
-  comment: string;
   searchQuery: string;
   searchResults: AnimeSummary[];
   isSearching: boolean;

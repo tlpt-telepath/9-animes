@@ -18,7 +18,6 @@ type ShareMode = 'full' | 'short';
 type PersistedSlot = {
   id: number;
   selectedAnime: AnimeSummary | null;
-  comment: string;
 };
 
 type PersistedState = {
@@ -30,7 +29,6 @@ function createInitialSlots(): AnimeSlot[] {
   return Array.from({ length: SLOT_COUNT }, (_, i) => ({
     id: i + 1,
     selectedAnime: null,
-    comment: '',
     searchQuery: '',
     searchResults: [],
     isSearching: false,
@@ -43,8 +41,7 @@ function toPersistedState(title: string, slots: AnimeSlot[]): PersistedState {
     title,
     slots: slots.map((slot) => ({
       id: slot.id,
-      selectedAnime: slot.selectedAnime,
-      comment: slot.comment
+      selectedAnime: slot.selectedAnime
     }))
   };
 }
@@ -107,8 +104,7 @@ export default function HomePage() {
             if (!found) return slot;
             return {
               ...slot,
-              selectedAnime: found.selectedAnime,
-              comment: found.comment || ''
+              selectedAnime: found.selectedAnime
             };
           })
         );
@@ -234,10 +230,6 @@ export default function HomePage() {
     }));
   };
 
-  const handleCommentChange = (slotId: number, value: string): void => {
-    updateSlot(slotId, (slot) => ({ ...slot, comment: value }));
-  };
-
   const handleCopyShareText = async (): Promise<void> => {
     setCopyError(null);
     try {
@@ -277,7 +269,6 @@ export default function HomePage() {
                 onQueryChange={handleQueryChange}
                 onSelectAnime={handleSelectAnime}
                 onClearAnime={handleClearAnime}
-                onCommentChange={handleCommentChange}
               />
             ))}
           </div>

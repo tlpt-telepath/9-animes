@@ -65,9 +65,6 @@ export function AnimeGrid({ title, slots }: AnimeGridProps) {
                   <p className="line-clamp-2 text-xs font-semibold text-slate-100 sm:text-sm">
                     {index + 1}. {displayTitle}
                   </p>
-                  {slot.comment && (
-                    <p className="mt-1 line-clamp-2 text-[10px] text-slate-200 sm:text-xs">{slot.comment}</p>
-                  )}
                 </div>
               </article>
             );
