@@ -11,6 +11,7 @@ import { AnimeSlot, AnimeSummary } from '@/types/anime';
 const SLOT_COUNT = 9;
 const DEBOUNCE_MS = 400;
 const STORAGE_KEY = 'nine-animes-state-v1';
+const IMAGE_PROXY = process.env.NEXT_PUBLIC_IMAGE_PROXY || '';
 
 type PersistedSlot = {
   id: number;
@@ -243,6 +244,7 @@ export default function HomePage() {
             exportError={exportError}
             onCopyShareText={handleCopyShareText}
             shareText={shareText}
+            proxyEnabled={Boolean(IMAGE_PROXY)}
           />
         </section>
 

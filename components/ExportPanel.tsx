@@ -4,6 +4,7 @@ type ExportPanelProps = {
   exportError: string | null;
   onCopyShareText: () => void;
   shareText: string;
+  proxyEnabled: boolean;
 };
 
 export function ExportPanel({
@@ -11,10 +12,14 @@ export function ExportPanel({
   isExporting,
   exportError,
   onCopyShareText,
-  shareText
+  shareText,
+  proxyEnabled
 }: ExportPanelProps) {
   return (
     <section className="space-y-3 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
+      <p className="text-xs text-slate-300">
+        画像プロキシ: {proxyEnabled ? '有効' : '無効'}
+      </p>
       <button
         type="button"
         onClick={onExport}

@@ -36,6 +36,7 @@ jobs:
         env:
           GITHUB_ACTIONS: true
           GITHUB_PAGES_REPO: ${{ github.event.repository.name }}
+          NEXT_PUBLIC_IMAGE_PROXY: ${{ vars.NEXT_PUBLIC_IMAGE_PROXY }}
         run: npm run build
 
       - name: Upload Pages artifact

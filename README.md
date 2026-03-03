@@ -33,6 +33,7 @@ npm run build
 - `NEXT_PUBLIC_IMAGE_PROXY=https://your-proxy.example.com/?url=`
 
 この環境変数を設定すると、画像URLは自動で `proxy + encodeURIComponent(originalUrl)` 形式で読み込まれます。
+GitHub Pages の Actions ビルドでは、Repository Variables に `NEXT_PUBLIC_IMAGE_PROXY` を作成してください（`Settings > Secrets and variables > Actions > Variables`）。
 
 Cloudflare Workers 例:
 
