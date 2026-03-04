@@ -15,11 +15,9 @@ export function ExportPanel({
   onChangeShareMode,
   copyError
 }: ExportPanelProps) {
-  const FULL_LIMIT = 280;
   const SHORT_LIMIT = 140;
   const activeShareText = shareMode === 'short' ? shortShareText : fullShareText;
-  const limit = shareMode === 'short' ? SHORT_LIMIT : FULL_LIMIT;
-  const isOverLimit = activeShareText.length > limit;
+  const isOverLimit = shareMode === 'short' && activeShareText.length > SHORT_LIMIT;
 
   return (
     <section className="space-y-3 rounded-lg border border-slate-700 bg-slate-900/60 p-4">
@@ -52,7 +50,8 @@ export function ExportPanel({
           </button>
         </div>
         <p className="mb-2 text-[11px] text-slate-300">
-          文字数: {activeShareText.length}/{limit}
+          文字数: {activeShareText.length}
+          {shareMode === 'short' ? `/${SHORT_LIMIT}` : ''}
           {isOverLimit ? '（制限超過）' : ''}
         </p>
         <p className="mb-3 whitespace-pre-wrap text-xs text-slate-100">{activeShareText}</p>
