@@ -10,8 +10,7 @@ import { AnimeSlot, AnimeSummary } from '@/types/anime';
 const SLOT_COUNT = 9;
 const DEBOUNCE_MS = 400;
 const STORAGE_KEY = 'nine-animes-state-v1';
-const X_MAX_LENGTH = 280;
-const SHORT_BODY_MAX_LENGTH = 140;
+const SHORT_TOTAL_MAX_LENGTH = 140;
 const SHARE_HASHTAG = '#私を構成する9つのアニメ';
 const SHARE_URL = 'https://tlpt-telepath.github.io/9-animes/';
 
@@ -52,22 +51,24 @@ function normalizeQuery(text: string): string {
   return text.trim().toLowerCase();
 }
 
-function composeShareText(lines: string[]): string {
-  const body = lines.length ? lines.join('\n') : '1. （まだ選択中）';
+function composeShareText(body: string): string {
   return `${SHARE_HASHTAG}\n\n${body}\n\n${SHARE_URL}`;
 }
 
 function buildShortShareText(lines: string[]): string {
-  if (!lines.length) return composeShareText([]);
+  const baseLines = lines.length ? lines : ['1. （まだ選択中）'];
+  const fixedLength = composeShareText('').length;
+  const bodyBudget = SHORT_TOTAL_MAX_LENGTH - fixedLength;
+  if (bodyBudget <= 0) return `${SHARE_HASHTAG}\n\n${SHARE_URL}`;
 
   const result: string[] = [];
   let bodyLength = 0;
 
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
+  for (let i = 0; i < baseLines.length; i += 1) {
+    const line = baseLines[i];
     const lineWithBreak = result.length ? `\n${line}` : line;
 
-    if (bodyLength + lineWithBreak.length <= SHORT_BODY_MAX_LENGTH) {
+    if (bodyLength + lineWithBreak.length <= bodyBudget) {
       result.push(line);
       bodyLength += lineWithBreak.length;
       continue;
@@ -75,18 +76,26 @@ function buildShortShareText(lines: string[]): string {
 
     const prefixMatch = line.match(/^(\d+\.\s*)/);
     const prefix = prefixMatch ? prefixMatch[1] : `${i + 1}. `;
-    const remaining = SHORT_BODY_MAX_LENGTH - bodyLength - (result.length ? 1 : 0);
+    const remaining = bodyBudget - bodyLength - (result.length ? 1 : 0);
     if (remaining > prefix.length + 1) {
       const titleRoom = remaining - prefix.length - 1;
       const rawTitle = line.replace(/^(\d+\.\s*)/, '');
       result.push(`${prefix}${rawTitle.slice(0, titleRoom)}…`);
     } else if (!result.length) {
-      result.push(`${prefix}…`);
+      result.push(`${prefix.slice(0, Math.max(0, remaining - 1))}…`);
     }
     break;
   }
 
-  return composeShareText(result);
+  let text = composeShareText(result.join('\n'));
+  if (text.length <= SHORT_TOTAL_MAX_LENGTH) return text;
+
+  let body = result.join('\n');
+  while (text.length > SHORT_TOTAL_MAX_LENGTH && body.length > 1) {
+    body = `${body.slice(0, -2)}…`;
+    text = composeShareText(body);
+  }
+  return text;
 }
 
 export default function HomePage() {
@@ -200,7 +209,10 @@ export default function HomePage() {
     [slots]
   );
 
-  const fullShareText = useMemo(() => composeShareText(shareLines), [shareLines]);
+  const fullShareText = useMemo(
+    () => composeShareText(shareLines.length ? shareLines.join('\n') : '1. （まだ選択中）'),
+    [shareLines]
+  );
   const shortShareText = useMemo(() => buildShortShareText(shareLines), [shareLines]);
   const activeShareText = shareMode === 'short' ? shortShareText : fullShareText;
 
