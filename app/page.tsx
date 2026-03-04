@@ -11,7 +11,9 @@ const SLOT_COUNT = 9;
 const DEBOUNCE_MS = 400;
 const STORAGE_KEY = 'nine-animes-state-v1';
 const X_MAX_LENGTH = 280;
+const SHORT_BODY_MAX_LENGTH = 140;
 const SHARE_HASHTAG = '#私を構成する9つのアニメ';
+const SHARE_URL = 'https://tlpt-telepath.github.io/9-animes/';
 
 type ShareMode = 'full' | 'short';
 
@@ -50,39 +52,41 @@ function normalizeQuery(text: string): string {
   return text.trim().toLowerCase();
 }
 
-function composeShareText(title: string, lines: string[]): string {
-  const body = lines.length ? lines.join('\n') : '（まだ選択中）';
-  return `${title}\n\n${body}\n\n${SHARE_HASHTAG}`;
+function composeShareText(lines: string[]): string {
+  const body = lines.length ? lines.join('\n') : '1. （まだ選択中）';
+  return `${SHARE_HASHTAG}\n\n${body}\n\n${SHARE_URL}`;
 }
 
-function shortenListLine(line: string, maxTitleChars: number): string {
-  const match = line.match(/^(\d+\.\s*)(.*)$/);
-  if (!match) return line;
-  const [, prefix, rawTitle] = match;
-  const title = rawTitle.trim();
-  if (title.length <= maxTitleChars) return `${prefix}${title}`;
-  return `${prefix}${title.slice(0, maxTitleChars)}…`;
-}
+function buildShortShareText(lines: string[]): string {
+  if (!lines.length) return composeShareText([]);
 
-function buildShortShareText(title: string, lines: string[]): string {
-  if (!lines.length) return composeShareText(title, []);
+  const result: string[] = [];
+  let bodyLength = 0;
 
-  const titleLimits = [28, 22, 16, 12, 8];
-  for (const maxTitleChars of titleLimits) {
-    for (let keepCount = lines.length; keepCount >= 1; keepCount -= 1) {
-      const candidateLines = lines.slice(0, keepCount).map((line) => shortenListLine(line, maxTitleChars));
-      if (keepCount < lines.length) {
-        const lastIndex = candidateLines.length - 1;
-        const numMatch = candidateLines[lastIndex].match(/^(\d+)\./);
-        const numberLabel = numMatch ? `${numMatch[1]}.` : `${keepCount}.`;
-        candidateLines[lastIndex] = `${numberLabel} なんたら……`;
-      }
-      const candidate = composeShareText(title, candidateLines);
-      if (candidate.length <= X_MAX_LENGTH) return candidate;
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    const lineWithBreak = result.length ? `\n${line}` : line;
+
+    if (bodyLength + lineWithBreak.length <= SHORT_BODY_MAX_LENGTH) {
+      result.push(line);
+      bodyLength += lineWithBreak.length;
+      continue;
     }
+
+    const prefixMatch = line.match(/^(\d+\.\s*)/);
+    const prefix = prefixMatch ? prefixMatch[1] : `${i + 1}. `;
+    const remaining = SHORT_BODY_MAX_LENGTH - bodyLength - (result.length ? 1 : 0);
+    if (remaining > prefix.length + 1) {
+      const titleRoom = remaining - prefix.length - 1;
+      const rawTitle = line.replace(/^(\d+\.\s*)/, '');
+      result.push(`${prefix}${rawTitle.slice(0, titleRoom)}…`);
+    } else if (!result.length) {
+      result.push(`${prefix}…`);
+    }
+    break;
   }
 
-  return `${title.slice(0, 30)}…\n\n1. なんたら……\n\n${SHARE_HASHTAG}`;
+  return composeShareText(result);
 }
 
 export default function HomePage() {
@@ -196,8 +200,8 @@ export default function HomePage() {
     [slots]
   );
 
-  const fullShareText = useMemo(() => composeShareText(title, shareLines), [title, shareLines]);
-  const shortShareText = useMemo(() => buildShortShareText(title, shareLines), [title, shareLines]);
+  const fullShareText = useMemo(() => composeShareText(shareLines), [shareLines]);
+  const shortShareText = useMemo(() => buildShortShareText(shareLines), [shareLines]);
   const activeShareText = shareMode === 'short' ? shortShareText : fullShareText;
 
   const updateSlot = (slotId: number, updater: (prev: AnimeSlot) => AnimeSlot): void => {
