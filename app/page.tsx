@@ -262,6 +262,16 @@ export default function HomePage() {
         <h1 className="text-2xl font-bold text-slate-100 sm:text-3xl">私を構成する9つのアニメ</h1>
         <p className="text-sm text-slate-300">
           9作品を選んで一覧化し、シェア文を作成できます。
+          <br />
+          作者：
+          <a
+            href="https://x.com/tlpt_telepath"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-1 text-cyan-300 underline decoration-cyan-400/60 underline-offset-2 hover:text-cyan-200"
+          >
+            @tlpt_telepath
+          </a>
         </p>
       </header>
 
