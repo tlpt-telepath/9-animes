@@ -272,6 +272,16 @@ export default function HomePage() {
           >
             @tlpt_telepath
           </a>
+          <br />
+          音楽版は
+          <a
+            href="https://tlpt-telepath.github.io/9-musics/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-1 text-cyan-300 underline decoration-cyan-400/60 underline-offset-2 hover:text-cyan-200"
+          >
+            こちら
+          </a>
         </p>
       </header>
 
