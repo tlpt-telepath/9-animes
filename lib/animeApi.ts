@@ -122,12 +122,14 @@ export async function searchAnime(query: string): Promise<AnimeSummary[]> {
   }
 
   const url = `${API_BASE}/anime?q=${encodeURIComponent(trimmed)}&limit=12&sfw=true&order_by=score&sort=desc`;
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      Accept: 'application/json'
-    }
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'GET'
+    });
+  } catch {
+    throw new Error('検索通信に失敗しました。時間を空けて再試行してください。');
+  }
 
   if (!response.ok) {
     throw new Error('アニメ検索APIの呼び出しに失敗しました。時間を空けて再試行してください。');

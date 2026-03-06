@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimeCellEditor } from '@/components/AnimeCellEditor';
 import { AnimeGrid } from '@/components/AnimeGrid';
 import { ExportPanel } from '@/components/ExportPanel';
@@ -103,6 +103,7 @@ export default function HomePage() {
   const [slots, setSlots] = useState<AnimeSlot[]>(createInitialSlots());
   const [copyError, setCopyError] = useState<string | null>(null);
   const [shareMode, setShareMode] = useState<ShareMode>('full');
+  const lastSearchedQueryRef = useRef<Record<number, string>>({});
 
   useEffect(() => {
     try {
@@ -161,7 +162,14 @@ export default function HomePage() {
         return null;
       }
 
+      const normalizedQuery = normalizeQuery(slot.searchQuery);
+      if (lastSearchedQueryRef.current[slot.id] === normalizedQuery) {
+        return null;
+      }
+
       const timer = window.setTimeout(async () => {
+        lastSearchedQueryRef.current[slot.id] = normalizedQuery;
+
         setSlots((current) =>
           current.map((s) => (s.id === slot.id ? { ...s, isSearching: true, error: null } : s))
         );
@@ -236,6 +244,7 @@ export default function HomePage() {
   };
 
   const handleClearAnime = (slotId: number): void => {
+    lastSearchedQueryRef.current[slotId] = '';
     updateSlot(slotId, (slot) => ({
       ...slot,
       selectedAnime: null,
