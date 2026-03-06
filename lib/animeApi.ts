@@ -21,7 +21,31 @@ type JikanSearchResponse = {
   data: JikanAnimeItem[];
 };
 
+type AniListMedia = {
+  id: number;
+  title: {
+    romaji: string | null;
+    english: string | null;
+    native: string | null;
+  };
+  coverImage?: {
+    extraLarge?: string | null;
+    large?: string | null;
+    medium?: string | null;
+  };
+};
+
+type AniListResponse = {
+  data?: {
+    Page?: {
+      media?: AniListMedia[];
+    };
+  };
+  errors?: Array<{ message: string }>;
+};
+
 const API_BASE = 'https://api.jikan.moe/v4';
+const ANILIST_API_BASE = 'https://graphql.anilist.co';
 const memoryCache = new Map<string, AnimeSummary[]>();
 const CACHE_KEY = 'anime-search-cache-v1';
 
@@ -105,6 +129,61 @@ function saveSessionCache(cache: Record<string, AnimeSummary[]>): void {
   }
 }
 
+async function searchWithJikan(query: string): Promise<AnimeSummary[]> {
+  const url = `${API_BASE}/anime?q=${encodeURIComponent(query)}&limit=12&sfw=true&order_by=score&sort=desc`;
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) {
+    throw new Error('jikan_non_ok');
+  }
+
+  const json = (await response.json()) as JikanSearchResponse;
+  const normalized = (json.data || []).map(normalizeAnime);
+  return clientFilterAndSort(normalized, query).slice(0, 8);
+}
+
+function normalizeAniListAnime(item: AniListMedia): AnimeSummary {
+  const imageUrl = item.coverImage?.extraLarge || item.coverImage?.large || item.coverImage?.medium || null;
+  return {
+    id: item.id,
+    title: item.title.romaji || item.title.english || item.title.native || 'タイトル不明',
+    titleJapanese: item.title.native,
+    titleEnglish: item.title.english,
+    imageUrl
+  };
+}
+
+async function searchWithAniList(query: string): Promise<AnimeSummary[]> {
+  const requestBody = {
+    query:
+      'query ($search: String, $perPage: Int) { Page(perPage: $perPage) { media(search: $search, type: ANIME, isAdult: false, sort: POPULARITY_DESC) { id title { romaji english native } coverImage { extraLarge large medium } } } }',
+    variables: {
+      search: query,
+      perPage: 12
+    }
+  };
+
+  const response = await fetch(ANILIST_API_BASE, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    throw new Error('anilist_non_ok');
+  }
+
+  const json = (await response.json()) as AniListResponse;
+  if (json.errors?.length) {
+    throw new Error('anilist_graphql_error');
+  }
+
+  const normalized = (json.data?.Page?.media || []).map(normalizeAniListAnime);
+  return clientFilterAndSort(normalized, query).slice(0, 8);
+}
+
 export async function searchAnime(query: string): Promise<AnimeSummary[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];
@@ -121,29 +200,23 @@ export async function searchAnime(query: string): Promise<AnimeSummary[]> {
     return sessionCache[key];
   }
 
-  const url = `${API_BASE}/anime?q=${encodeURIComponent(trimmed)}&limit=12&sfw=true&order_by=score&sort=desc`;
-  let response: Response;
   try {
-    response = await fetch(url, {
-      method: 'GET'
-    });
+    const optimized = await searchWithJikan(trimmed);
+    memoryCache.set(key, optimized);
+    sessionCache[key] = optimized;
+    saveSessionCache(sessionCache);
+    return optimized;
   } catch {
-    throw new Error('検索通信に失敗しました。時間を空けて再試行してください。');
+    try {
+      const optimized = await searchWithAniList(trimmed);
+      memoryCache.set(key, optimized);
+      sessionCache[key] = optimized;
+      saveSessionCache(sessionCache);
+      return optimized;
+    } catch {
+      throw new Error('検索通信に失敗しました。時間を空けて再試行してください。');
+    }
   }
-
-  if (!response.ok) {
-    throw new Error('アニメ検索APIの呼び出しに失敗しました。時間を空けて再試行してください。');
-  }
-
-  const json = (await response.json()) as JikanSearchResponse;
-  const normalized = (json.data || []).map(normalizeAnime);
-  const optimized = clientFilterAndSort(normalized, trimmed).slice(0, 8);
-
-  memoryCache.set(key, optimized);
-  sessionCache[key] = optimized;
-  saveSessionCache(sessionCache);
-
-  return optimized;
 }
 
 export function getAnimeDisplayTitle(anime: AnimeSummary): string {
